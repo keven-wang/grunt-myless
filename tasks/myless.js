@@ -14,7 +14,7 @@ module.exports = function(grunt) {
     var path = require('path');
     var less = Object.create(require('less'));
     var tree = Object.create(less.tree);
-    
+    var func = Object.create(tree.functions);    
     var lessOptions = {
         parse: ['paths', 'optimization', 'filename', 'strictImports', 'dumpLineNumbers'],
         render: ['compress', 'yuicompress']
@@ -22,12 +22,12 @@ module.exports = function(grunt) {
     
     // overwrite less.tree.data-uri
     less.tree = tree;
-    tree.functions['data-uri'] = function(mimetypeNode, filePathNode) {        
+    tree.functions = func;
+    func['data-uri'] = function(mimetypeNode, filePathNode) {        
         if (typeof window !== 'undefined') {
             return new tree.URL(filePathNode || mimetypeNode, this.currentFileInfo).eval(this.env);
         }
 
-        var isFileInc;
         var mimetype = mimetypeNode.value;
         var fileInfo = this.currentFileInfo;
         var filePath = (filePathNode && filePathNode.value);
@@ -41,20 +41,7 @@ module.exports = function(grunt) {
         }
 
         if (this.env.isPathRelative(filePath)) {
-            isFileInc = (function(){
-                var filename = fileInfo.filename.replace(/\\/g, '/');
-                var rootName = fileInfo.rootFilename.replace(/\\/g, '/');
-                return filename != rootName;
-            })();  
-            
-            if (fileInfo.relativeUrls) {
-                filePath = path.join(fileInfo.currentDirectory, filePath);
-            } else {
-                filePath = (isFileInc
-                    ? path.join(fileInfo.currentDirectory, filePath)
-                    : path.join(fileInfo.entryPath, filePath)
-                );
-            }
+            filePath = path.join(fileInfo.currentDirectory, filePath);
         }
 
         // detect the mimetype if not given
